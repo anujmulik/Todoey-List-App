@@ -30,7 +30,7 @@ class CategoryViewController: UITableViewController {
         
         let alert = UIAlertController(title: "Add New Category", message: "", preferredStyle: .alert)
         
-        let action = UIAlertAction(title: "Add Category", style: .default) { (action) in
+        let action = UIAlertAction(title: "Add", style: .default) { (action) in
             
             let newCategory = Category()
             newCategory.name = textField.text!
@@ -39,14 +39,26 @@ class CategoryViewController: UITableViewController {
             
         }
         
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+        
         alert.addTextField { (alertTextField) in
             alertTextField.placeholder = "Create New Category"
             textField = alertTextField
         }
         
+        alert.addAction(cancelAction)
         alert.addAction(action)
-        present(alert, animated: true, completion: nil)
         
+        present(alert, animated: true){
+            alert.view.superview?.isUserInteractionEnabled = true
+            alert.view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.alertControllerBackgroundTapped)))
+        }
+        
+    }
+    
+    @objc func alertControllerBackgroundTapped()
+    {
+        self.dismiss(animated: true, completion: nil)
     }
     
     // MARK: - TableView Datasource Methods

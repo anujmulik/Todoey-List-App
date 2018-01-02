@@ -78,6 +78,8 @@ class TodoListViewController: UITableViewController {
         
         let alert = UIAlertController(title: "Add New Todoey Item", message: "", preferredStyle: .alert)
         
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
+        
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             
             if let currentCategory = self.selectedCategory {
@@ -104,13 +106,24 @@ class TodoListViewController: UITableViewController {
         }
         
         alert.addAction(action)
-        present(alert, animated: true, completion: nil)
+        alert.addAction(cancelAction)
+        present(alert, animated: true) {
+            alert.view.superview?.isUserInteractionEnabled = true
+            alert.view.superview?.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.alertControllerBackgroundTapped)))
+        }
+        
+        
     }
     
     func loadItems() {
         
         todoItems = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
         tableView.reloadData()
+    }
+    
+    @objc func alertControllerBackgroundTapped()
+    {
+        self.dismiss(animated: true, completion: nil)
     }
 }
 
