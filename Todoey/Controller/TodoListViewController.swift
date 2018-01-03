@@ -8,12 +8,14 @@
 
 import UIKit
 import RealmSwift
+import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: SwipeTableViewController {
     
     var todoItems : Results<Item>?
     let realm = try! Realm()
     
+    @IBOutlet weak var searchBar: UISearchBar!
     
     var selectedCategory: Category? {
         didSet {
@@ -24,8 +26,33 @@ class TodoListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        
         // Do any additional setup after loading the view, typically from a nib.
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        title = selectedCategory?.name
+        guard let colorHex = selectedCategory?.color  else { fatalError("Color Hex is missing.") }
+        updateNavBar(withHexCode: colorHex)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        updateNavBar(withHexCode: "1D9BF6")
+    }
+    
+    // MARK: - Update Navigation Bar
+    
+    func updateNavBar( withHexCode colorHexCode: String) {
+        
+        guard let navBar = navigationController?.navigationBar else {
+            fatalError("Navigation Controller does not exist.")
+        }
+        
+        guard let barColor = UIColor(hexString: colorHexCode) else { fatalError("Color Hex string is invalid.") }
+
+        navBar.barTintColor = barColor
+        navBar.tintColor = ContrastColorOf(barColor, returnFlat: true)
+        searchBar.barTintColor = barColor
+        navBar.largeTitleTextAttributes = [NSAttributedStringKey.foregroundColor:ContrastColorOf(barColor, returnFlat: true)]
     }
     
     override func didReceiveMemoryWarning() {
@@ -41,15 +68,25 @@ class TodoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
         if let item = todoItems?[indexPath.row] {
             cell.textLabel?.text = item.title
+            
+            if let colorHexCode = selectedCategory?.color {
+                
+                if let color = UIColor(hexString: colorHexCode)?.darken(byPercentage:CGFloat(indexPath.row) / CGFloat(todoItems!.count)) {
+                    
+                    cell.backgroundColor = color
+                    cell.textLabel?.textColor =  ContrastColorOf(color, returnFlat: true)
+                }
+            }
+            
             cell.accessoryType = item.done ? .checkmark : .none
+            
         } else {
             cell.textLabel?.text = "No Items Added"
         }
-        
         
         return cell
     }
@@ -71,7 +108,8 @@ class TodoListViewController: UITableViewController {
     }
     
     
-    // MARK: - Add New Item
+    // MARK: - Manipulate Data
+    
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
         var textField = UITextField()
@@ -115,16 +153,35 @@ class TodoListViewController: UITableViewController {
         
     }
     
+    @objc func alertControllerBackgroundTapped()
+    {
+        self.dismiss(animated: true, completion: nil)
+    }
+    
     func loadItems() {
         
         todoItems = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
         tableView.reloadData()
     }
     
-    @objc func alertControllerBackgroundTapped()
-    {
-        self.dismiss(animated: true, completion: nil)
+    func delete(item: Item) {
+        
+        do {
+            try realm.write {
+                realm.delete(item)
+            }
+        } catch {
+            print("Error deleting item. \(error)")
+        }
     }
+    
+    override func updateDataModel(at indexPath: IndexPath) {
+        if let itemForDeletion = self.todoItems?[indexPath.row] {
+            self.delete(item: itemForDeletion)
+        }
+    }
+    
+    
 }
 
 //MARK: - Search Bar Methods
@@ -155,5 +212,6 @@ extension TodoListViewController: UISearchBarDelegate {
         tableView.reloadData()
     }
 }
+
 
 
